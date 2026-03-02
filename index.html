@@ -1,9 +1,10 @@
+
 <!DOCTYPE html>
 <html lang="en">
 <head>
 <meta charset="UTF-8">
 <meta name="viewport" content="width=device-width, initial-scale=1.0">
-<title>Tripzy | Smart Itinerary Planner</title>
+<title>Tripzy AI | Smart Itinerary Planner</title>
 
 <link href="https://fonts.googleapis.com/css2?family=Poppins:wght@300;400;600&display=swap" rel="stylesheet">
 <script src="https://cdnjs.cloudflare.com/ajax/libs/jspdf/2.5.1/jspdf.umd.min.js"></script>
@@ -15,7 +16,6 @@
         --secondary: #feb47b;
         --dark: #1e3c72;
         --success: #2ecc71;
-        --whatsapp: #25D366;
         --light-bg: #f8f9fa;
     }
 
@@ -60,11 +60,10 @@
         outline: none;
     }
 
-    .btn-group { display: flex; flex-wrap: wrap; gap: 10px; margin-bottom: 20px; }
+    .btn-group { display: flex; gap: 10px; margin-bottom: 20px; }
 
     button {
         flex: 1;
-        min-width: 150px;
         padding: 16px;
         border-radius: 12px;
         border: none;
@@ -79,8 +78,6 @@
     .btn-generate:hover { transform: translateY(-2px); box-shadow: 0 5px 15px rgba(255, 126, 95, 0.4); }
 
     .btn-pdf { background: var(--success); color: white; display: none; }
-    .btn-whatsapp { background: var(--whatsapp); color: white; display: none; }
-    .btn-clear { background: #e74c3c; color: white; display: none; }
 
     #loading {
         display: none;
@@ -103,13 +100,13 @@
 
     @keyframes fadeIn { from { opacity: 0; transform: translateY(10px); } to { opacity: 1; transform: translateY(0); } }
 
-    /* Layout Elements */
+    /* General Markdown Elements */
     .result-card h2 { color: var(--dark); margin: 30px 0 15px 0; border-bottom: 2px solid var(--primary); display: inline-block; }
     .result-card table { width: 100%; border-collapse: collapse; margin: 15px 0; font-size: 14px; border-radius: 8px; overflow: hidden; }
     .result-card th, .result-card td { border: 1px solid #eee; padding: 12px; text-align: left; }
     .result-card th { background: #f2f2f2; color: var(--dark); }
 
-    /* DAY CARDS */
+    /* DAY-WISE SECTION STYLING */
     .result-card h3 {
         background: var(--light-bg);
         color: var(--dark);
@@ -118,30 +115,24 @@
         margin-top: 25px;
         border-left: 6px solid var(--primary);
         box-shadow: 0 4px 10px rgba(0,0,0,0.05);
+        display: block;
+        width: 100%;
     }
 
-    /* FOOD TABLE STYLING */
+    /* FOOD SECTION STYLING */
     .result-card table:nth-of-type(2) {
         border-left: 6px solid var(--success);
         background: #f9fffb;
     }
     
-    .result-card h2:nth-of-type(2) { color: #27ae60; border-bottom: 2px solid var(--success); }
-
-    /* BOOKING BUTTONS */
-    .result-card a {
-        display: inline-block;
-        background: var(--dark);
-        color: white !important;
-        padding: 10px 20px;
-        border-radius: 8px;
-        text-decoration: none;
-        margin: 8px 5px 8px 0;
-        font-weight: 600;
-        font-size: 13px;
-        transition: 0.3s;
+    .result-card h2:nth-of-type(2) {
+        color: #27ae60;
+        border-bottom: 2px solid var(--success);
     }
-    .result-card a:hover { background: var(--primary); transform: translateY(-2px); }
+
+    /* Spacing for Lists */
+    .result-card ul { padding-left: 25px; margin: 15px 0; }
+    .result-card li { margin-bottom: 8px; }
 
     footer { text-align: center; margin-top: 30px; opacity: 0.6; font-size: 12px; }
 </style>
@@ -157,17 +148,15 @@
         <input type="number" id="days" placeholder="No. of Days">
         <input type="text" id="budget" placeholder="Budget (e.g. ₹5000)">
         <select id="style">
-            <option value="Backpacker">Backpacker</option>
-            <option value="Comfort" selected>Comfort</option>
-            <option value="Luxury">Luxury</option>
+            <option value="Backpacker">Backpacker (Budget)</option>
+            <option value="Comfort" selected>Comfort (Standard)</option>
+            <option value="Luxury">Luxury (Premium)</option>
         </select>
     </div>
 
     <div class="btn-group">
-        <button class="btn-generate" onclick="generateItinerary()">Generate Plan</button>
-        <button id="pdfBtn" class="btn-pdf" onclick="downloadPDF()">Export PDF</button>
-        <button id="whatsappBtn" class="btn-whatsapp" onclick="shareWhatsApp()">WhatsApp 📱</button>
-        <button id="clearBtn" class="btn-clear" onclick="clearPlan()">Clear Plan</button>
+        <button class="btn-generate" onclick="generateItinerary()">Generate My Plan</button>
+        <button id="pdfBtn" class="btn-pdf" onclick="downloadPDF()">Download PDF</button>
     </div>
 
     <div id="loading">✨ Curating your unique experience...</div>
@@ -178,23 +167,6 @@
 </div>
 
 <script>
-    // LOAD SAVED PLAN ON REFRESH
-    window.onload = function() {
-        const savedData = localStorage.getItem("tripzy_itinerary");
-        if (savedData) {
-            displayItinerary(savedData);
-        }
-    };
-
-    function displayItinerary(itinerary) {
-        const resDiv = document.getElementById("result");
-        resDiv.innerHTML = marked.parse(itinerary);
-        resDiv.style.display = "block";
-        document.getElementById("pdfBtn").style.display = "block";
-        document.getElementById("whatsappBtn").style.display = "block";
-        document.getElementById("clearBtn").style.display = "block";
-    }
-
     async function generateItinerary() {
         const payload = {
             current_city: document.getElementById("current_city").value,
@@ -205,35 +177,16 @@
         };
 
         if (!payload.current_city || !payload.destination_city || !payload.days) {
-            alert("Please fill in all details!"); return;
+            alert("Please fill in all fields!"); return;
         }
 
-        const loader = document.getElementById("loading");
         const resDiv = document.getElementById("result");
+        const loader = document.getElementById("loading");
         const pdfBtn = document.getElementById("pdfBtn");
-        const waBtn = document.getElementById("whatsappBtn");
-        const clearBtn = document.getElementById("clearBtn");
-        
-        // 1. START DYNAMIC LOADING MESSAGES
+
         loader.style.display = "block";
         resDiv.style.display = "none";
         pdfBtn.style.display = "none";
-        waBtn.style.display = "none";
-        clearBtn.style.display = "none";
-
-        const messages = [
-            "✨ Analyzing the best routes...",
-            "🍴 Finding legendary local food gems...",
-            "🏨 Searching for top-rated stays...",
-            "🗓️ Finalizing your custom schedule...",
-            "🚀 Almost there! Polishing your plan..."
-        ];
-        
-        let msgIndex = 0;
-        const msgInterval = setInterval(() => {
-            loader.innerText = messages[msgIndex % messages.length];
-            msgIndex++;
-        }, 2000); // Change text every 2 seconds
 
         try {
             const response = await fetch("https://tripzy-ai-1.onrender.com/generate-itinerary", {
@@ -243,39 +196,30 @@
             });
             const data = await response.json();
             
-            // SAVE TO STORAGE
-            localStorage.setItem("tripzy_itinerary", data.itinerary);
-            displayItinerary(data.itinerary);
-
+            // Converts AI Markdown into Styled HTML Sections
+            resDiv.innerHTML = marked.parse(data.itinerary);
+            resDiv.style.display = "block";
+            pdfBtn.style.display = "block";
         } catch (error) {
-            alert("Error: Backend server not responding.");
+            alert("Error: Backend server not found. Run your FastAPI app!");
         } finally {
-            // 2. STOP LOADING
-            clearInterval(msgInterval);
             loader.style.display = "none";
-            loader.innerText = "✨ Curating your unique experience..."; // Reset
         }
-    }
-
-    function clearPlan() {
-        localStorage.removeItem("tripzy_itinerary");
-        location.reload();
-    }
-
-    function shareWhatsApp() {
-        const content = document.getElementById("result").innerText;
-        const encodedText = encodeURIComponent("Check out my AI Travel Plan from Tripzy:\n\n" + content);
-        window.open(`https://wa.me/?text=${encodedText}`, '_blank');
     }
 
     function downloadPDF() {
         const { jsPDF } = window.jspdf;
         const doc = new jsPDF();
         const content = document.getElementById("result").innerText;
+
+        doc.setFont("helvetica", "bold");
+        doc.text("Tripzy AI: Your Travel Plan", 10, 15);
+        doc.setFont("helvetica", "normal");
         doc.setFontSize(10);
+
         const lines = doc.splitTextToSize(content, 180);
-        doc.text(lines, 10, 20);
-        doc.save("Travel_Plan.pdf");
+        doc.text(lines, 10, 25);
+        doc.save("Travel_Itinerary.pdf");
     }
 </script>
 
